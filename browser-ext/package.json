@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",
+    "postbuild": "node scripts/fix-reserved-names.mjs",
     "package": "plasmo package",
     "test": "vitest run"
   },
