@@ -10,21 +10,34 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "plasmo": "0.90.5"
+    "pdfjs-dist": "4.4.168",
+    "plasmo": "0.90.5",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
     "@types/chrome": "0.0.260",
     "@types/node": "20.11.30",
+    "@types/react": "18.2.79",
+    "@types/react-dom": "18.2.25",
     "typescript": "5.4.5",
     "vitest": "1.5.0"
   },
   "manifest": {
     "host_permissions": [
-      "http://localhost:5699/*"
+      "http://localhost:5699/*",
+      "https://arxiv.org/*"
     ],
     "permissions": [
       "storage",
-      "alarms"
+      "alarms",
+      "declarativeNetRequest"
+    ],
+    "web_accessible_resources": [
+      {
+        "resources": ["tabs/pdf-viewer.html"],
+        "matches": ["https://arxiv.org/*"]
+      }
     ]
   }
 }

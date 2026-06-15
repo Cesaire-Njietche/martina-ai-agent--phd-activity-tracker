@@ -31,6 +31,37 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return false
 })
 
+// Chrome's native PDF viewer can't run content scripts, so redirect arxiv PDF
+// navigations (at the network layer, before the PDF loads) to our PDF.js-based
+// viewer page, passing the original PDF URL as ?file=. \\0 is the whole matched
+// URL. The viewer must be web-accessible to arxiv.org for this redirect (see
+// web_accessible_resources in package.json).
+const PDF_REDIRECT_RULE_ID = 1
+
+function installPdfRedirectRule(): void {
+  const viewer = chrome.runtime.getURL("tabs/pdf-viewer.html")
+  chrome.declarativeNetRequest.updateDynamicRules({
+    removeRuleIds: [PDF_REDIRECT_RULE_ID],
+    addRules: [
+      {
+        id: PDF_REDIRECT_RULE_ID,
+        priority: 1,
+        action: {
+          type: "redirect",
+          redirect: { regexSubstitution: `${viewer}?file=\\0` }
+        },
+        condition: {
+          regexFilter: "^https://arxiv\\.org/pdf/.*",
+          resourceTypes: ["main_frame"]
+        }
+      }
+    ]
+  })
+}
+
+installPdfRedirectRule()
+chrome.runtime.onInstalled.addListener(installPdfRedirectRule)
+
 async function postEvent(payload: unknown): Promise<boolean> {
   try {
     const res = await fetch(DAEMON_URL, {
