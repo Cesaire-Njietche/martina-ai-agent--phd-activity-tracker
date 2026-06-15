@@ -1,0 +1,33 @@
+{
+  "name": "phd-tracker-vscode",
+  "displayName": "PhD Research Tracker",
+  "description": "Tracks engaged coding time per file and reports to the local phd-tracker daemon.",
+  "version": "0.1.0",
+  "publisher": "phd-tracker",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phd-tracker/phd-tracker"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {},
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node --test",
+    "vscode:prepublish": "npm run compile",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.26.0",
+    "typescript": "^5.4.5"
+  }
+}
