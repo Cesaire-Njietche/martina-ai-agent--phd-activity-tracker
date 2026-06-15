@@ -178,6 +178,13 @@ app = FastAPI(title="phd-tracker daemon", lifespan=lifespan)
 async def post_event(event: Event) -> dict[str, str]:
     dedup_hash = _dedup_hash(event)
     row = _to_row(event, dedup_hash)
+    log.info(
+        "Queued event source=%s activity_type=%s paper_id=%s engaged_secs=%s",
+        event.source,
+        event.activity_type,
+        (event.metadata or {}).get("paper_id"),
+        event.engaged_secs,
+    )
     async with _buffer_lock:
         existing = _buffer.get(dedup_hash)
         if existing is None:

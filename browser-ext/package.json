@@ -1,0 +1,30 @@
+{
+  "name": "phd-tracker-ext",
+  "displayName": "PhD Research Tracker",
+  "version": "0.1.0",
+  "description": "Tracks engaged reading time on paper pages and reports to the local phd-tracker daemon.",
+  "scripts": {
+    "dev": "plasmo dev",
+    "build": "plasmo build",
+    "package": "plasmo package",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "plasmo": "0.90.5"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.0.260",
+    "@types/node": "20.11.30",
+    "typescript": "5.4.5",
+    "vitest": "1.5.0"
+  },
+  "manifest": {
+    "host_permissions": [
+      "http://localhost:5699/*"
+    ],
+    "permissions": [
+      "storage",
+      "alarms"
+    ]
+  }
+}
