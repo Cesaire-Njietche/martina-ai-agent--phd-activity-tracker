@@ -71,17 +71,23 @@ def _dedup_hash(event: Event) -> str:
     Note: deliberately excludes ``source`` so the same paper arriving from the
     browser and from Zotero on the same day collapses into one row, which is the
     stated goal. The identity is scoped per student.
+
+    For app-based sources (e.g. the desktop PDF watcher) the open document
+    ``title`` is folded into the identity so each PDF/document gets its own daily
+    row rather than collapsing all activity in that app into one.
     """
     md = event.metadata or {}
-    paper_id_or_app = (
+    app = md.get("app")
+    app_identity = f"{app}|{md.get('title')}" if app and md.get("title") else app
+    identity = (
         md.get("paper_id")
         or md.get("doi")
-        or md.get("app")
+        or app_identity
         or md.get("url")
         or event.source
     )
     day = event.timestamp.astimezone(timezone.utc).date().isoformat()
-    raw = f"{STUDENT_ID}|{paper_id_or_app}|{day}"
+    raw = f"{STUDENT_ID}|{identity}|{day}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
