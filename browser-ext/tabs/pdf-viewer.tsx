@@ -61,9 +61,10 @@ function PdfViewer() {
 
         if (paper) {
           stopEngagement = startEngagementTracking({
-            paper,
+            activityType: "paper_read",
             getUrl: () => fileUrl,
             getTitle: () => document.title,
+            metadata: () => ({ paper_id: paper.paper_id, paper_source: paper.paper_source }),
             scrollEl: scrollRef.current
           })
         }

@@ -42,6 +42,23 @@ export function detectPaper(url: string): PaperRef | null {
   return null
 }
 
+export interface OverleafRef {
+  /** Overleaf project id (24-char hex), stored as metadata.project_id. */
+  project_id: string
+}
+
+// Overleaf editor URLs look like https://www.overleaf.com/project/<24-hex id>.
+const OVERLEAF_PATTERN = /overleaf\.com\/project\/([0-9a-f]{24}|[^/?#]+)/i
+
+/** Returns the Overleaf project ref for an editor URL, or null otherwise. */
+export function detectOverleaf(url: string): OverleafRef | null {
+  const match = OVERLEAF_PATTERN.exec(url)
+  if (match && match[1]) {
+    return { project_id: safeDecode(match[1]) }
+  }
+  return null
+}
+
 function safeDecode(value: string): string {
   try {
     return decodeURIComponent(value)

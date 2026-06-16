@@ -1,13 +1,20 @@
 # martina browser extension
 
-Plasmo (Chrome MV3) extension that measures engaged reading time on paper pages
-and reports a single `paper_read` event per paper to the local daemon.
+Plasmo (Chrome MV3) extension that measures engaged time on paper pages
+(reading) and Overleaf project editors (writing LaTeX), reporting a single event
+per page to the local daemon.
 
 ## Sites tracked
 
-arXiv (`/abs/`, `/pdf/`), Semantic Scholar (`/paper/`), PubMed, ACM DL (`/doi/`),
-IEEE Xplore (`/document/`), OpenReview (`/forum`). The `paper_id` is extracted
-from the URL — see `lib/detect.ts` (and `lib/detect.test.ts` for the exact forms).
+- **Papers** (`activity_type: paper_read`): arXiv (`/abs/`, `/pdf/`), Semantic
+  Scholar (`/paper/`), PubMed, ACM DL (`/doi/`), IEEE Xplore (`/document/`),
+  OpenReview (`/forum`). Metadata: `paper_id`, `paper_source`.
+- **Overleaf** (`activity_type: latex_writing`): `overleaf.com/project/<id>`.
+  Metadata: `project_id`, `paper_source: "overleaf"`.
+
+All events also carry `url`, `title`, and `scroll_pct`. Extraction lives in
+`lib/detect.ts` (`detectPaper` / `detectOverleaf`); see `lib/detect.test.ts` for
+the exact URL forms.
 
 ## How it works
 

@@ -1,14 +1,14 @@
-import type { PaperRef } from "~lib/detect"
-
 /**
- * Shared engagement tracker used by both the HTML content script and the PDF.js
- * viewer page. Accrues "engaged seconds" via a 15s heartbeat that only counts
- * when there was scroll/mousemove/keydown activity in the last 30s AND the
- * document is focused. At 90 cumulative engaged seconds it sends one
- * paper_read event to the background worker.
+ * Shared engagement tracker used by the HTML content script (papers, Overleaf)
+ * and the PDF.js viewer page. Accrues "engaged seconds" via a 15s heartbeat that
+ * only counts when there was scroll/mousemove/keydown activity in the last 30s
+ * AND the document is focused. At 90 cumulative engaged seconds it sends one
+ * event to the background worker.
  *
- * The only difference between callers is the scroll surface: the content script
- * scrolls the document, while the viewer scrolls a container element.
+ * Callers supply the activity type and the source-specific metadata fields; the
+ * common fields (url, title, scroll_pct) are added here. The scroll surface
+ * differs per caller: the content script scrolls the document, the viewer
+ * scrolls a container element.
  */
 
 const HEARTBEAT_MS = 15_000
@@ -16,15 +16,18 @@ const ACTIVE_WINDOW_MS = 30_000
 const THRESHOLD_SECS = 90
 
 export interface EngagementOptions {
-  paper: PaperRef
+  /** e.g. "paper_read" (reading) or "latex_writing" (Overleaf). */
+  activityType: string
   getUrl: () => string
   getTitle: () => string
+  /** Source-specific metadata, e.g. {paper_id, paper_source} or {project_id, paper_source}. */
+  metadata: () => Record<string, unknown>
   /** Scroll container to measure; defaults to the document scrolling element. */
   scrollEl?: HTMLElement | null
 }
 
 export function startEngagementTracking(opts: EngagementOptions): () => void {
-  const { paper, getUrl, getTitle } = opts
+  const { getUrl, getTitle } = opts
   const scrollEl = opts.scrollEl ?? null
 
   let lastActivityAt = Date.now()
@@ -52,12 +55,11 @@ export function startEngagementTracking(opts: EngagementOptions): () => void {
       type: "paper-event",
       payload: {
         source: "browser",
-        activity_type: "paper_read",
+        activity_type: opts.activityType,
         timestamp: new Date().toISOString(),
         engaged_secs: secs,
         metadata: {
-          paper_id: paper.paper_id,
-          paper_source: paper.paper_source,
+          ...opts.metadata(),
           url: getUrl(),
           title: getTitle(),
           scroll_pct: maxScrollPct
@@ -77,9 +79,12 @@ export function startEngagementTracking(opts: EngagementOptions): () => void {
   }
 
   const scrollTarget: EventTarget = scrollEl ?? window
+  // Capture phase for key/mouse so editors (e.g. Overleaf's CodeMirror) that
+  // stop event propagation still register as engagement.
+  const capture = { passive: true, capture: true }
   scrollTarget.addEventListener("scroll", onActivity, { passive: true })
-  window.addEventListener("mousemove", onActivity, { passive: true })
-  window.addEventListener("keydown", onActivity, { passive: true })
+  window.addEventListener("mousemove", onActivity, capture)
+  window.addEventListener("keydown", onActivity, capture)
 
   readScroll()
   const timer = setInterval(heartbeat, HEARTBEAT_MS)
@@ -87,7 +92,7 @@ export function startEngagementTracking(opts: EngagementOptions): () => void {
   return () => {
     clearInterval(timer)
     scrollTarget.removeEventListener("scroll", onActivity)
-    window.removeEventListener("mousemove", onActivity)
-    window.removeEventListener("keydown", onActivity)
+    window.removeEventListener("mousemove", onActivity, { capture: true })
+    window.removeEventListener("keydown", onActivity, { capture: true })
   }
 }

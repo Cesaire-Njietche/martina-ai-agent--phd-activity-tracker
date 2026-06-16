@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { detectPaper } from "./detect"
+import { detectOverleaf, detectPaper } from "./detect"
 
 describe("detectPaper", () => {
   const cases: Array<[string, string, string]> = [
@@ -52,5 +52,32 @@ describe("detectPaper", () => {
 
   it.each(negatives)("ignores non-paper page %s", (url) => {
     expect(detectPaper(url)).toBeNull()
+  })
+
+  it("does not treat Overleaf as a paper page", () => {
+    expect(detectPaper("https://www.overleaf.com/project/5f3a1b2c3d4e5f60718293a4")).toBeNull()
+  })
+})
+
+describe("detectOverleaf", () => {
+  it("extracts the project id from an editor URL", () => {
+    expect(detectOverleaf("https://www.overleaf.com/project/5f3a1b2c3d4e5f60718293a4")).toEqual({
+      project_id: "5f3a1b2c3d4e5f60718293a4"
+    })
+  })
+
+  it("works without the www subdomain and with trailing path/query", () => {
+    expect(detectOverleaf("https://overleaf.com/project/5f3a1b2c3d4e5f60718293a4/detacher?x=1")).toEqual({
+      project_id: "5f3a1b2c3d4e5f60718293a4"
+    })
+  })
+
+  const negatives = [
+    "https://www.overleaf.com/",
+    "https://www.overleaf.com/project", // dashboard, no id
+    "https://arxiv.org/abs/2401.00001"
+  ]
+  it.each(negatives)("ignores non-editor URL %s", (url) => {
+    expect(detectOverleaf(url)).toBeNull()
   })
 })
