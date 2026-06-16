@@ -1,7 +1,17 @@
 import * as vscode from "vscode"
 
-import { sendOrQueue, flushQueue, type DaemonEvent } from "./daemon"
-import { HEARTBEAT_MS, tick, type EngagementState } from "./engagement"
+import {
+  sendOrQueue,
+  flushQueue,
+  QUEUE_KEY,
+  type DaemonEvent
+} from "./daemon"
+import {
+  ACTIVE_WINDOW_MS,
+  HEARTBEAT_MS,
+  tick,
+  type EngagementState
+} from "./engagement"
 
 // --------------------------------------------------------------------------- //
 // Minimal typings for the built-in vscode.git extension API (not in @types).
@@ -25,7 +35,7 @@ interface GitExtension {
 }
 
 // --------------------------------------------------------------------------- //
-// Session state
+// State
 // --------------------------------------------------------------------------- //
 interface Session {
   fileUri: vscode.Uri
@@ -38,6 +48,23 @@ interface Session {
 }
 
 let session: Session | undefined
+let output: vscode.OutputChannel
+let statusBar: vscode.StatusBarItem
+
+function log(msg: string): void {
+  output.appendLine(`[${new Date().toLocaleTimeString()}] ${msg}`)
+}
+
+function updateStatus(): void {
+  if (!session) {
+    statusBar.text = "$(pulse) PhD: idle"
+    return
+  }
+  const s = session.engagement
+  statusBar.text = s.sent
+    ? `$(check) PhD: sent (${s.engagedSecs}s)`
+    : `$(pulse) PhD: ${s.engagedSecs}s / 90`
+}
 
 async function getGitRemote(uri: vscode.Uri): Promise<string | undefined> {
   try {
@@ -59,6 +86,8 @@ async function getGitRemote(uri: vscode.Uri): Promise<string | undefined> {
 async function startSession(editor: vscode.TextEditor | undefined): Promise<void> {
   if (!editor) {
     session = undefined
+    log("Active editor: none — session paused")
+    updateStatus()
     return
   }
   const uri = editor.document.uri
@@ -72,10 +101,14 @@ async function startSession(editor: vscode.TextEditor | undefined): Promise<void
     engagement: { engagedSecs: 0, sent: false }
   }
   session = next
+  log(`Session start: ${uri.fsPath} [lang=${next.language}, project=${next.project ?? "-"}]`)
+  updateStatus()
 
-  // Resolve the git remote asynchronously; only apply if still the same session.
   const remote = await getGitRemote(uri)
-  if (session === next) session.gitRepo = remote
+  if (session === next) {
+    session.gitRepo = remote
+    log(`  git_repo=${remote ?? "-"}`)
+  }
 }
 
 function markEngaged(): void {
@@ -97,18 +130,66 @@ function buildEvent(s: Session): DaemonEvent {
   }
 }
 
+async function deliver(
+  context: vscode.ExtensionContext,
+  event: DaemonEvent,
+  label: string
+): Promise<boolean> {
+  const ok = await sendOrQueue(context.globalState, event)
+  log(
+    ok
+      ? `${label}: delivered to daemon ✓`
+      : `${label}: daemon offline — queued to globalState (will retry on next send/activation)`
+  )
+  updateStatus()
+  return ok
+}
+
 export function activate(context: vscode.ExtensionContext): void {
-  // Try to drain anything queued from a previous offline session.
-  void flushQueue(context.globalState)
+  output = vscode.window.createOutputChannel("PhD Tracker")
+  context.subscriptions.push(output)
+  log("Extension activated. Daemon target: http://localhost:5699/events")
+
+  statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
+  statusBar.tooltip = "PhD Tracker — engaged seconds (click for log)"
+  statusBar.command = "phdTracker.showLog"
+  context.subscriptions.push(statusBar)
+  statusBar.show()
+  updateStatus()
+
+  const queuedCount = context.globalState.get<DaemonEvent[]>(QUEUE_KEY, []).length
+  if (queuedCount > 0) log(`Flushing ${queuedCount} event(s) queued from a previous session…`)
+  void flushQueue(context.globalState).then(() => {
+    const left = context.globalState.get<DaemonEvent[]>(QUEUE_KEY, []).length
+    if (queuedCount > 0) log(`Queue flush done — ${left} still pending (daemon offline?)`)
+  })
 
   void startSession(vscode.window.activeTextEditor)
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("phdTracker.showLog", () => output.show()),
+    vscode.commands.registerCommand("phdTracker.sendTestEvent", async () => {
+      const event: DaemonEvent = session
+        ? { ...buildEvent(session), engaged_secs: session.engagement.engagedSecs || 1 }
+        : {
+            source: "vscode",
+            activity_type: "coding",
+            timestamp: new Date().toISOString(),
+            engaged_secs: 1,
+            metadata: { file: "(manual test)", language: "(test)", project: undefined, git_repo: undefined }
+          }
+      output.show()
+      log("Manual test event — sending now…")
+      const ok = await deliver(context, event, "Manual test event")
+      void vscode.window.showInformationMessage(
+        ok ? "PhD Tracker: delivered to daemon ✓" : "PhD Tracker: daemon offline — event queued"
+      )
+    }),
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       void startSession(editor)
     }),
     vscode.window.onDidChangeTextEditorSelection((e) => {
-      if (session && e.textEditor === vscode.window.activeTextEditor) markEngaged()
+      if (session && e.textEditor.document.uri.toString() === session.uriKey) markEngaged()
     }),
     vscode.workspace.onDidSaveTextDocument((doc) => {
       if (session && doc.uri.toString() === session.uriKey) markEngaged()
@@ -116,19 +197,35 @@ export function activate(context: vscode.ExtensionContext): void {
   )
 
   const timer = setInterval(() => {
-    if (!session) return
-    const { state, fire } = tick(
-      session.engagement,
-      vscode.window.state.focused,
-      session.lastEngagementAt,
-      Date.now()
-    )
+    if (!session) {
+      updateStatus()
+      return
+    }
+    if (session.engagement.sent) return
+
+    const now = Date.now()
+    const focused = vscode.window.state.focused
+    const idleMs = now - session.lastEngagementAt
+
+    if (!focused) {
+      log("heartbeat: skipped (VSCode window not focused)")
+      return
+    }
+    if (idleMs > ACTIVE_WINDOW_MS) {
+      log(`heartbeat: skipped (idle ${Math.round(idleMs / 1000)}s — type/scroll to count)`)
+      return
+    }
+
+    const { state, fire } = tick(session.engagement, focused, session.lastEngagementAt, now)
     session.engagement = state
+    log(`heartbeat: +15s (total ${state.engagedSecs}s / 90)`)
+    updateStatus()
+
     if (fire) {
-      void sendOrQueue(context.globalState, buildEvent(session))
+      log("Threshold reached (90s) — sending coding event…")
+      void deliver(context, buildEvent(session), "Coding event")
     }
   }, HEARTBEAT_MS)
-
   context.subscriptions.push({ dispose: () => clearInterval(timer) })
 }
 

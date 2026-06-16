@@ -2,7 +2,7 @@
   "name": "phd-tracker-vscode",
   "displayName": "PhD Research Tracker",
   "description": "Tracks engaged coding time per file and reports to the local phd-tracker daemon.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "phd-tracker",
   "license": "MIT",
   "repository": {
@@ -15,7 +15,18 @@
   "categories": ["Other"],
   "activationEvents": ["onStartupFinished"],
   "main": "./out/extension.js",
-  "contributes": {},
+  "contributes": {
+    "commands": [
+      {
+        "command": "phdTracker.showLog",
+        "title": "PhD Tracker: Show Log"
+      },
+      {
+        "command": "phdTracker.sendTestEvent",
+        "title": "PhD Tracker: Send Test Event Now"
+      }
+    ]
+  },
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
