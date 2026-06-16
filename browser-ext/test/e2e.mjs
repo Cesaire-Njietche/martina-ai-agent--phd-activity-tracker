@@ -19,7 +19,7 @@ const TALL_PAGE = `<!doctype html><html><head><title>Test Paper: E2E 2401.00001<
 <div style="height:6000px;background:linear-gradient(#fff,#eef)"></div>
 </body></html>`
 
-const userDataDir = mkdtempSync(resolve(tmpdir(), "phd-e2e-"))
+const userDataDir = mkdtempSync(resolve(tmpdir(), "martina-e2e-"))
 
 const HEADLESS_NEW = process.env.HEADLESS_NEW === "1"
 const args = [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`]

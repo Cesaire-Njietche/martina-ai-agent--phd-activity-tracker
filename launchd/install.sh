@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Install the phd-tracker daemon as a per-user launchd agent (auto-start at login).
+# Install the martina daemon as a per-user launchd agent (auto-start at login).
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON="${PYTHON:-$(command -v python3)}"
-LABEL="com.phdtracker.daemon"
+LABEL="com.martina.daemon"
 PLIST_SRC="$REPO_DIR/launchd/$LABEL.plist"
 PLIST_DST="$HOME/Library/LaunchAgents/$LABEL.plist"
 

@@ -1,4 +1,4 @@
-"""Local PhD-tracker daemon.
+"""Local Martina daemon.
 
 A FastAPI service that buffers activity events in memory and flushes them to the
 Supabase `unified_events` table on a fixed interval. Events are deduplicated so
@@ -31,7 +31,7 @@ from supabase import Client, create_client
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-log = logging.getLogger("phd-tracker")
+log = logging.getLogger("martina")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
@@ -171,7 +171,7 @@ async def lifespan(app: FastAPI):
         await _flush()  # best-effort drain on shutdown
 
 
-app = FastAPI(title="phd-tracker daemon", lifespan=lifespan)
+app = FastAPI(title="martina daemon", lifespan=lifespan)
 
 
 @app.post("/events")

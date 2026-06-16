@@ -57,13 +57,13 @@ function log(msg: string): void {
 
 function updateStatus(): void {
   if (!session) {
-    statusBar.text = "$(pulse) PhD: idle"
+    statusBar.text = "$(pulse) Martina: idle"
     return
   }
   const s = session.engagement
   statusBar.text = s.sent
-    ? `$(check) PhD: sent (${s.engagedSecs}s)`
-    : `$(pulse) PhD: ${s.engagedSecs}s / 90`
+    ? `$(check) Martina: sent (${s.engagedSecs}s)`
+    : `$(pulse) Martina: ${s.engagedSecs}s / 90`
 }
 
 async function getGitRemote(uri: vscode.Uri): Promise<string | undefined> {
@@ -146,13 +146,13 @@ async function deliver(
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-  output = vscode.window.createOutputChannel("PhD Tracker")
+  output = vscode.window.createOutputChannel("Martina")
   context.subscriptions.push(output)
   log("Extension activated. Daemon target: http://localhost:5699/events")
 
   statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100)
-  statusBar.tooltip = "PhD Tracker — engaged seconds (click for log)"
-  statusBar.command = "phdTracker.showLog"
+  statusBar.tooltip = "Martina — engaged seconds (click for log)"
+  statusBar.command = "martina.showLog"
   context.subscriptions.push(statusBar)
   statusBar.show()
   updateStatus()
@@ -167,8 +167,8 @@ export function activate(context: vscode.ExtensionContext): void {
   void startSession(vscode.window.activeTextEditor)
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("phdTracker.showLog", () => output.show()),
-    vscode.commands.registerCommand("phdTracker.sendTestEvent", async () => {
+    vscode.commands.registerCommand("martina.showLog", () => output.show()),
+    vscode.commands.registerCommand("martina.sendTestEvent", async () => {
       const event: DaemonEvent = session
         ? { ...buildEvent(session), engaged_secs: session.engagement.engagedSecs || 1 }
         : {
@@ -182,7 +182,7 @@ export function activate(context: vscode.ExtensionContext): void {
       log("Manual test event — sending now…")
       const ok = await deliver(context, event, "Manual test event")
       void vscode.window.showInformationMessage(
-        ok ? "PhD Tracker: delivered to daemon ✓" : "PhD Tracker: daemon offline — event queued"
+        ok ? "Martina: delivered to daemon ✓" : "Martina: daemon offline — event queued"
       )
     }),
     vscode.window.onDidChangeActiveTextEditor((editor) => {

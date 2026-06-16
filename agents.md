@@ -1,4 +1,4 @@
-# PhD Research Tracker — Agent Instructions
+# Martina — Agent Instructions
 
 ## Project
 Passive research activity tracker for PhD students.

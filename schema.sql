@@ -1,4 +1,4 @@
--- Schema for the phd-tracker daemon. Run in the Supabase SQL editor.
+-- Schema for the martina daemon. Run in the Supabase SQL editor.
 --
 -- The daemon upserts on `dedup_hash`, so the UNIQUE constraint below is what
 -- enforces "one row per (student, paper/app, day)" across daemon restarts.

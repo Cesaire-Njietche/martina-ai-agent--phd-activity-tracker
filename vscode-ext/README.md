@@ -1,6 +1,6 @@
-# phd-tracker VSCode extension
+# martina VSCode extension
 
-Tracks engaged coding time per file and reports it to the local phd-tracker
+Tracks engaged coding time per file and reports it to the local martina
 daemon (`http://localhost:5699`).
 
 ## Behaviour
@@ -30,7 +30,7 @@ npm run package     # builds the .vsix (runs vsce package)
 ## Install the .vsix
 
 ```bash
-code --install-extension phd-tracker-vscode-0.1.0.vsix
+code --install-extension martina-vscode-0.1.1.vsix
 ```
 
 Or in VSCode: Extensions view → `…` menu → **Install from VSIX…**

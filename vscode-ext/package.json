@@ -1,13 +1,13 @@
 {
-  "name": "phd-tracker-vscode",
-  "displayName": "PhD Research Tracker",
-  "description": "Tracks engaged coding time per file and reports to the local phd-tracker daemon.",
+  "name": "martina-vscode",
+  "displayName": "Martina",
+  "description": "Tracks engaged coding time per file and reports to the local martina daemon.",
   "version": "0.1.1",
-  "publisher": "phd-tracker",
+  "publisher": "martina",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/phd-tracker/phd-tracker"
+    "url": "https://github.com/martina/martina"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -18,12 +18,12 @@
   "contributes": {
     "commands": [
       {
-        "command": "phdTracker.showLog",
-        "title": "PhD Tracker: Show Log"
+        "command": "martina.showLog",
+        "title": "Martina: Show Log"
       },
       {
-        "command": "phdTracker.sendTestEvent",
-        "title": "PhD Tracker: Send Test Event Now"
+        "command": "martina.sendTestEvent",
+        "title": "Martina: Send Test Event Now"
       }
     ]
   },

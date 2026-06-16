@@ -22,7 +22,7 @@ export interface KeyValueStore {
   update(key: string, value: unknown): Thenable<void> | Promise<void>
 }
 
-export const QUEUE_KEY = "phdTracker.queue"
+export const QUEUE_KEY = "martina.queue"
 const DEFAULT_PORT = 5699
 
 export function postEvent(

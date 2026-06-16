@@ -1,8 +1,8 @@
 {
-  "name": "phd-tracker-ext",
-  "displayName": "PhD Research Tracker",
+  "name": "martina-ext",
+  "displayName": "Martina",
   "version": "0.1.0",
-  "description": "Tracks engaged reading time on paper pages and reports to the local phd-tracker daemon.",
+  "description": "Tracks engaged reading time on paper pages and reports to the local martina daemon.",
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",

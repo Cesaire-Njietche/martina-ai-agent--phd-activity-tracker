@@ -13,7 +13,7 @@ const EXT = resolve(__dirname, "..", "build", "chrome-mv3-prod")
 const PDF_URL = "https://arxiv.org/pdf/2401.00001"
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
-const userDataDir = mkdtempSync(resolve(tmpdir(), "phd-e2e-pdf-"))
+const userDataDir = mkdtempSync(resolve(tmpdir(), "martina-e2e-pdf-"))
 const ctx = await chromium.launchPersistentContext(userDataDir, {
   headless: false,
   args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`]

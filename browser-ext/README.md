@@ -1,4 +1,4 @@
-# phd-tracker browser extension
+# martina browser extension
 
 Plasmo (Chrome MV3) extension that measures engaged reading time on paper pages
 and reports a single `paper_read` event per paper to the local daemon.

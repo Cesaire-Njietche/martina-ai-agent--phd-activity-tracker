@@ -9,8 +9,8 @@
  */
 
 const DAEMON_URL = "http://localhost:5699/events"
-const QUEUE_KEY = "phd_tracker_queue"
-const RETRY_ALARM = "phd-tracker-retry"
+const QUEUE_KEY = "martina_queue"
+const RETRY_ALARM = "martina-retry"
 const RETRY_PERIOD_MIN = 60
 
 // Create the retry alarm on every SW startup (create is idempotent per name).

@@ -1,4 +1,4 @@
-# phd-tracker daemon
+# martina daemon
 
 A local FastAPI daemon that collects research-activity events (browser, Zotero,
 apps, …), deduplicates them, and syncs them to a Supabase `unified_events` table.
@@ -54,6 +54,6 @@ from merged duplicates are summed.
 bash launchd/install.sh
 ```
 
-This renders `launchd/com.phdtracker.daemon.plist` with the absolute repo and
+This renders `launchd/com.martina.daemon.plist` with the absolute repo and
 python paths into `~/Library/LaunchAgents/` and loads it (`RunAtLoad` +
 `KeepAlive`). Logs go to `daemon.log` / `daemon.err.log` in the repo root.
