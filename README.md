@@ -44,7 +44,8 @@ martina/
 ├── browser-ext/      # Chrome extension — papers, arXiv, Overleaf
 ├── vscode-ext/        # VSCode extension — coding activity
 ├── desktop-watcher/    # Zotero, Obsidian, Foxit/Acrobat tracking
-├── daemon/            # FastAPI server — capture, enrich, classify, report
+├── daemon/            # FastAPI server — capture everything
+├── agents/            # Multi AI agents — enrich the capture, classify per topic, generate report
 └── dashboard/         # Next.js — student view + supervisor share page
 ```
 
