@@ -23,6 +23,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from supabase import Client, create_client
+from agents.agents import run_agent
 
 # --------------------------------------------------------------------------- #
 # Configuration
@@ -30,8 +31,20 @@ from supabase import Client, create_client
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+#logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("martina")
+
+# Set up a formatter that prints the 'levelname'
+formatter = logging.Formatter('%(levelname)s: %(message)s')
+
+# The trick: Rename the level name globally
+logging.addLevelName(logging.INFO, "Martina - PhD Tracker")
+log.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+log.addHandler(handler)
+
+
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
@@ -108,6 +121,52 @@ def _to_row(event: Event, dedup_hash: str) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 
 
+def _accumulate(
+    rows: list[dict[str, Any]], prior: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Fold prior daily totals into the rows being written (pure).
+
+    Since the upsert replaces the row, we add the already-stored ``engaged_secs``
+    for each dedup_hash so the total accumulates across flush windows / reading
+    sessions, and we keep the earliest ``timestamp`` as the session start. Inputs
+    are not mutated, so callers can safely re-buffer the originals on failure.
+    """
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        merged = dict(row)
+        prev = prior.get(merged["dedup_hash"])
+        if prev:
+            merged["engaged_secs"] = float(merged["engaged_secs"]) + float(
+                prev.get("engaged_secs") or 0
+            )
+            prev_ts = prev.get("timestamp")
+            if prev_ts:
+                try:
+                    if datetime.fromisoformat(prev_ts) < datetime.fromisoformat(
+                        merged["timestamp"]
+                    ):
+                        merged["timestamp"] = prev_ts
+                except ValueError:
+                    pass
+        out.append(merged)
+    return out
+
+
+def _persist(rows: list[dict[str, Any]]) -> None:
+    """Read existing daily totals, accumulate, and upsert. Runs in a thread."""
+    assert _supabase is not None
+    hashes = [r["dedup_hash"] for r in rows]
+    existing = (
+        _supabase.table(TABLE)
+        .select("dedup_hash, engaged_secs, timestamp")
+        .in_("dedup_hash", hashes)
+        .execute()
+    )
+    prior = {e["dedup_hash"]: e for e in (existing.data or [])}
+    payload = _accumulate(rows, prior)
+    _supabase.table(TABLE).upsert(payload, on_conflict="dedup_hash").execute()
+
+
 async def _flush() -> int:
     """Drain the buffer to Supabase. Returns the number of rows synced.
 
@@ -131,11 +190,7 @@ async def _flush() -> int:
         return 0
 
     try:
-        await asyncio.to_thread(
-            lambda: _supabase.table(TABLE)
-            .upsert(rows, on_conflict="dedup_hash")
-            .execute()
-        )
+        await asyncio.to_thread(_persist, rows)
     except Exception as exc:  # noqa: BLE001 - re-buffer and retry next tick
         async with _buffer_lock:
             for r in rows:
@@ -191,6 +246,18 @@ async def post_event(event: Event) -> dict[str, str]:
         (event.metadata or {}).get("paper_id"),
         event.engaged_secs,
     )
+
+    #Enrichment
+    if event.activity_type == 'paper_read':
+        task = asyncio.create_task(run_agent("You are my smart research assistant", 
+                f"""I will give you a dictionnary which contains paper title. Extract the title.
+                I want you to return metadata along with keywords for the title. Write each info per ligne separated with a colon(:). eg. title:[title]\n year:[year] ... 
+                If you don't find it in the tool provided, search in other relevant tools.
+                The dictionnary: {event.metadata}"""))
+        if task.done():
+            print(task.result())
+        
+
     async with _buffer_lock:
         existing = _buffer.get(dedup_hash)
         if existing is None:

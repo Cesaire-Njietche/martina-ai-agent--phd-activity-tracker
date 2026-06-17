@@ -1,6 +1,6 @@
 import unittest
 
-from daemon.main import Event, _dedup_hash
+from daemon.main import Event, _accumulate, _dedup_hash
 
 TS = "2026-06-16T12:00:00+00:00"
 TS_SAME_DAY = "2026-06-16T18:30:00+00:00"
@@ -57,6 +57,29 @@ class TestDedup(unittest.TestCase):
         h = _dedup_hash(desktop({"app": "Adobe Acrobat"}))
         self.assertIsInstance(h, str)
         self.assertEqual(len(h), 64)
+
+
+class TestAccumulate(unittest.TestCase):
+    def test_sums_engaged_secs_across_sessions(self):
+        rows = [{"dedup_hash": "h1", "engaged_secs": 90, "timestamp": TS_SAME_DAY}]
+        prior = {"h1": {"dedup_hash": "h1", "engaged_secs": 90, "timestamp": TS}}
+        out = _accumulate(rows, prior)
+        self.assertEqual(out[0]["engaged_secs"], 180.0)
+        # earliest start is kept
+        self.assertEqual(out[0]["timestamp"], TS)
+
+    def test_no_prior_leaves_row_unchanged(self):
+        rows = [{"dedup_hash": "h2", "engaged_secs": 45, "timestamp": TS}]
+        out = _accumulate(rows, {})
+        self.assertEqual(out[0]["engaged_secs"], 45)
+        self.assertEqual(out[0]["timestamp"], TS)
+
+    def test_does_not_mutate_inputs(self):
+        rows = [{"dedup_hash": "h1", "engaged_secs": 90, "timestamp": TS}]
+        prior = {"h1": {"engaged_secs": 90, "timestamp": TS}}
+        _accumulate(rows, prior)
+        # original row still holds the window-only value (safe to re-buffer)
+        self.assertEqual(rows[0]["engaged_secs"], 90)
 
 
 if __name__ == "__main__":

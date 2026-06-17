@@ -19,7 +19,7 @@ supervisor reports.
 ## My domains (use these in classifier prompts)
 - qec: surface code, stabilizer, fault tolerance, syndrome,
        logical observable, qubit, error correction, threshold
-- ai: MLP, neural network, CNN, GNN, transformers, RL
+- ai: MLP, neural network, CNN, GNN, transformers, RL, Pytorch
 - cybersecurity: adversarial attacks, syndrome poisoning, worse-case physical error injection
 
 ## Rules agents must follow

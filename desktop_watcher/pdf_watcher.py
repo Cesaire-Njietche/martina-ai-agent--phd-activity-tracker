@@ -24,6 +24,8 @@ from typing import Callable, Optional, Tuple
 DAEMON_URL = "http://localhost:5699/events"
 POLL_INTERVAL_SECS = 1.0
 THRESHOLD_SECS = 90
+GREEN = "\033[32m"
+RESET = "\033[0m"
 
 # Process/app names to match (case-insensitive). The brand substrings below are a
 # superset of these and tolerate version-specific naming:
@@ -275,11 +277,11 @@ def run(
 
 
 def main() -> None:
-    print(f"[pdf watcher] tracking Foxit + Acrobat on {os_label()}", flush=True)
+    print(f"{GREEN}[Martina - PhD Tracker]{RESET} tracking Foxit + Acrobat on {os_label()}", flush=True)
     try:
         run()
     except KeyboardInterrupt:
-        print("[pdf watcher] stopped", flush=True)
+        print(f"{GREEN}[Martina - PhD Tracker]{RESET} stopped", flush=True)
 
 
 if __name__ == "__main__":

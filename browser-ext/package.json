@@ -1,8 +1,8 @@
 {
-  "name": "martina-ext",
-  "displayName": "Martina",
+  "name": "phd-tracker-ext",
+  "displayName": "PhD Research Tracker",
   "version": "0.1.0",
-  "description": "Tracks engaged reading time on paper pages and reports to the local martina daemon.",
+  "description": "Tracks engaged reading time on paper pages and reports to the local phd-tracker daemon.",
   "scripts": {
     "dev": "plasmo dev",
     "build": "plasmo build",
@@ -27,7 +27,8 @@
   "manifest": {
     "host_permissions": [
       "http://localhost:5699/*",
-      "https://arxiv.org/*"
+      "https://arxiv.org/*",
+      "https://www.overleaf.com/*"
     ],
     "permissions": [
       "storage",
