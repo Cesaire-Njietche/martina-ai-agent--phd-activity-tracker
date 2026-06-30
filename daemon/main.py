@@ -15,15 +15,17 @@ import asyncio
 import hashlib
 import logging
 import os
+import json
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from supabase import Client, create_client
-from agents.agents import run_agent
+from agents.agent import run_agent
+from daemon.orchestrator import run_weekly_pipeline
 
 # --------------------------------------------------------------------------- #
 # Configuration
@@ -247,17 +249,23 @@ async def post_event(event: Event) -> dict[str, str]:
         event.engaged_secs,
     )
 
-    #Enrichment
-    if event.activity_type == 'paper_read':
-        task = asyncio.create_task(run_agent("You are my smart research assistant", 
-                f"""I will give you a dictionnary which contains paper title. Extract the title.
-                I want you to return metadata along with keywords for the title. Write each info per ligne separated with a colon(:). eg. title:[title]\n year:[year] ... 
-                If you don't find it in the tool provided, search in other relevant tools.
-                The dictionnary: {event.metadata}"""))
-        if task.done():
-            print(task.result())
+    # #Enrichment
+    # if event.activity_type == 'paper_read':
+    #     task = asyncio.create_task(run_agent("You are my smart PhD research assistant", 
+    #             f"""I will give you a dictionnary containing a paper title and raw paper title. Extract the title.
+    #             I want you to return metadata. 
+    #             RETURN the metadata as a dictionary with keys surrended with double quotes.
+    #             The dictionnary: {event.metadata} """))
+    #     r = await task
         
-
+    #     s = r.index('{')
+    #     e = r.index('}') + 1
+    
+    #     d = json.loads(r[s:e])
+    #     print(d)
+    #     for k, v in d.items():
+    #         event.metadata[k] = v 
+        
     async with _buffer_lock:
         existing = _buffer.get(dedup_hash)
         if existing is None:
@@ -270,6 +278,22 @@ async def post_event(event: Event) -> dict[str, str]:
                 existing["timestamp"] = row["timestamp"]
             existing["metadata"] = {**existing.get("metadata", {}), **event.metadata}
     return {"status": "queued"}
+
+
+def _this_monday() -> date:
+    """The Monday (UTC) of the current week — the weekly pipeline's week_start."""
+    # today = datetime.now(timezone.utc).date()
+    # return today - timedelta(days=today.weekday())
+
+    return (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+
+
+@app.get("/run-weekly")
+async def run_weekly() -> dict[str, Any]:
+    """Classify this week's read papers and return a summary."""
+    summary = await run_weekly_pipeline(STUDENT_ID, _this_monday())
+    log.info("Weekly pipeline summary: %s", summary)
+    return summary
 
 
 @app.get("/status")

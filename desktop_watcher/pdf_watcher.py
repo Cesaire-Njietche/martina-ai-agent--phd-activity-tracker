@@ -174,6 +174,42 @@ def _active_window_macos() -> Tuple[Optional[str], Optional[str]]:
     return name or None, title
 
 
+def _window_text_windows(user32, hwnd) -> str:
+    import ctypes
+
+    length = user32.GetWindowTextLengthW(hwnd)
+    buf = ctypes.create_unicode_buffer(length + 1)
+    user32.GetWindowTextW(hwnd, buf, length + 1)
+    return buf.value
+
+
+def _main_window_title_windows(user32, pid: int) -> str:
+    """Longest non-empty title among `pid`'s visible top-level windows.
+
+    Foxit PDF Reader makes a captionless helper window the foreground window
+    while the document filename lives on a sibling top-level frame of the same
+    process (class ``classFoxitReader``). Picking the longest visible title
+    recovers that frame's "<file>.pdf - Foxit PDF Reader" caption.
+    """
+    import ctypes
+    from ctypes import wintypes
+
+    titles: list[str] = []
+
+    def _collect(hwnd, _lparam):
+        wpid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(wpid))
+        if wpid.value == pid and user32.IsWindowVisible(hwnd):
+            text = _window_text_windows(user32, hwnd)
+            if text.strip():
+                titles.append(text)
+        return True
+
+    proc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)(_collect)
+    user32.EnumWindows(proc, 0)
+    return max(titles, key=len) if titles else ""
+
+
 def _active_window_windows() -> Tuple[Optional[str], Optional[str]]:
     import ctypes
     from ctypes import wintypes
@@ -183,13 +219,16 @@ def _active_window_windows() -> Tuple[Optional[str], Optional[str]]:
     if not hwnd:
         return None, None
 
-    length = user32.GetWindowTextLengthW(hwnd)
-    buf = ctypes.create_unicode_buffer(length + 1)
-    user32.GetWindowTextW(hwnd, buf, length + 1)
-    title = buf.value
+    title = _window_text_windows(user32, hwnd)
 
     pid = wintypes.DWORD()
     user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+
+    # The foreground window may be a captionless helper (e.g. Foxit); fall back
+    # to the process's main titled window so the PDF name isn't lost.
+    if not title.strip() and pid.value:
+        title = _main_window_title_windows(user32, pid.value) or title
+
     name = None
     try:
         import psutil
